@@ -97,6 +97,7 @@
   
     this.lastKnownScrollY = 0;
     this.elem             = elem;
+    this.container        = options.container || window;
     this.debouncer        = new Debouncer(this.update.bind(this));
     this.tolerance        = options.tolerance;
     this.classes          = options.classes;
@@ -134,7 +135,7 @@
       var classes = this.classes;
   
       this.initialised = false;
-      window.removeEventListener('scroll', this.debouncer, false);
+      this.container.removeEventListener('scroll', this.debouncer, false);
       this.elem.classList.remove(classes.unpinned, classes.pinned, classes.top, classes.initial);
     },
   
@@ -146,7 +147,7 @@
       if(!this.initialised){
         this.lastKnownScrollY = this.getScrollY();
         this.initialised = true;
-        window.addEventListener('scroll', this.debouncer, false);
+        this.container.addEventListener('scroll', this.debouncer, false);
   
         this.debouncer.handleEvent();
       }
@@ -214,9 +215,11 @@
      * @return {Number} pixels the page has scrolled along the Y-axis
      */
     getScrollY : function() {
-      return (window.pageYOffset !== undefined)
-        ? window.pageYOffset
-        : (document.documentElement || document.body.parentNode || document.body).scrollTop;
+      return (this.container.pageYOffset !== undefined)
+        ? this.container.pageYOffset
+        : this.container === window
+        ? (document.documentElement || document.body.parentNode || document.body).scrollTop
+        : this.container.scrollTop;
     },
   
     /**
@@ -225,9 +228,13 @@
      * @return {int} the height of the viewport in pixels
      */
     getViewportHeight : function () {
-      return window.innerHeight
+      var viewportHeight = window.innerHeight
         || document.documentElement.clientHeight
         || document.body.clientHeight;
+  
+      return (this.container === window)
+        ? viewportHeight
+        : Math.min(this.container.offsetHeight, viewportHeight);
     },
   
     /**
@@ -236,6 +243,10 @@
      * @return {int} the height of the document in pixels
      */
     getDocumentHeight : function () {
+      if (this.container !== window) {
+        return this.container.scrollHeight;
+      }
+  
       var body = document.body,
         documentElement = document.documentElement;
   
